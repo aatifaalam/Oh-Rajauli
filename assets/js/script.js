@@ -90,3 +90,91 @@ window.addEventListener("scroll", function () {
   }
 
 });
+
+/**
+ * Backend Integration
+ */
+
+// Handle Book a Table form submission
+const bookingForm = document.getElementById("booking-form");
+if (bookingForm) {
+  bookingForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(bookingForm);
+    const data = {
+      name: formData.get("full_name"),
+      email: formData.get("email_address"),
+      total_person: parseInt(formData.get("total_person")) || 1,
+      booking_date: formData.get("booking_date") ? new Date(formData.get("booking_date")).toISOString() : new Date().toISOString(),
+      message: formData.get("message"),
+      phone_number: "1234567890" // Adding default as UI does not have phone field
+    };
+
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (response.ok) {
+        alert("Table booked successfully!");
+        bookingForm.reset();
+      } else {
+        const err = await response.json();
+        alert("Error booking table: " + (err.detail || "Unknown error"));
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong!");
+    }
+  });
+}
+
+// Handle Order Now buttons
+const orderBtns = document.querySelectorAll(".food-menu-btn");
+orderBtns.forEach(btn => {
+  btn.addEventListener("click", async function () {
+    const card = this.closest(".food-menu-card");
+    const itemName = card.querySelector(".card-title").innerText;
+    let priceText = card.querySelector(".price").innerText;
+    // Extract numbers: e.g. ₹599.00 -> 599.00
+    let priceMatch = priceText.match(/[\d.]+/);
+    let price = priceMatch ? parseFloat(priceMatch[0]) : 0;
+
+    const orderData = {
+      customer_name: "Guest User",
+      phone: "1234567890",
+      items: [
+        {
+          item_name: itemName,
+          quantity: 1,
+          price: price
+        }
+      ]
+    };
+
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      if (response.ok) {
+        alert(`Successfully ordered: ${itemName}!`);
+      } else {
+        const err = await response.json();
+        alert("Error placing order: " + (err.detail || "Unknown error"));
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong placing the order!");
+    }
+  });
+});
